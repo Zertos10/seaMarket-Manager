@@ -1,10 +1,12 @@
 from django.http import HttpResponse, JsonResponse
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
 from manageSeaMarket.serializers import CategorySerializer
 from manageSeaMarket.models import Category
 
 class CategoryManagement(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self,request,format=None):
         """
         Retrieve all categories and return them as a JSON response.
