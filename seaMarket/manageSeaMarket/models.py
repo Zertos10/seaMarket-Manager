@@ -46,7 +46,6 @@ class User(AbstractBaseUser):
     def is_staff(self):
         return self.isAdmin
 class Product(models.Model):
-    id = models.AutoField(primary_key=True)
     productId = models.IntegerField(unique=True)
     salePrice = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -58,14 +57,12 @@ class Product(models.Model):
         ordering = ['productId']
         verbose_name = 'Product'
 class Category(models.Model):
-    idCategory = models.AutoField(primary_key=True)
     nameCategory = models.CharField(max_length=100)
     products = models.ManyToManyField(Product)
     class Meta:
         ordering = ['nameCategory']
         verbose_name = 'Category'
 class History(models.Model):
-    idHistory = models.AutoField(primary_key=True)
     addDate = models.DateTimeField()
     typeHistory = models.CharField(max_length=100)
     valueHistory = models.DecimalField(max_digits=10, decimal_places=2)
