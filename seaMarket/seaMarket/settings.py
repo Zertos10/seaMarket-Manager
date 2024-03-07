@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'manageSeaMarket.apps.ManageseamarketConfig'
 ]
+AUTH_USER_MODEL = 'manageSeaMarket.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
