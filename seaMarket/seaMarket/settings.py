@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'manageSeaMarket.apps.ManageseamarketConfig'
 ]
+AUTH_USER_MODEL = 'manageSeaMarket.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -51,7 +52,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 ROOT_URLCONF = 'seaMarket.urls'
 
 TEMPLATES = [
