@@ -1,6 +1,6 @@
 from http.client import responses
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 import requests
 from manageSeaMarket.models import Product
@@ -12,7 +12,7 @@ class ProductsLists(APIView):
     """
     A view for retrieving product lists.
     """
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         """
         Retrieve all products and return them as a JSON response.
@@ -34,7 +34,7 @@ class ProductsLists(APIView):
         return JsonResponse(res, safe=False)
     pass
 class RedirectionProductDetail(APIView):
-    
+    permission_classes = [IsAuthenticated]
     def get(self, request, pk, format=None):
         """
         Retrieve details of a product and return serialized data.
@@ -68,6 +68,7 @@ class ManageProduct(APIView):
     """
     A view for managing products.
     """
+    permission_classes = [IsAuthenticated]
     def post(self, request, format=None):
         
         try:
