@@ -72,6 +72,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'seaMarket.wsgi.application'
 
+URL_PRODUCT = 'http://51.255.166.155:1352/tig/'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
