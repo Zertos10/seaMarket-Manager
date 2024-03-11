@@ -1,10 +1,11 @@
+import datetime
 from http.client import responses
 from django.http import HttpResponse, JsonResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 import requests
-from manageSeaMarket.models import Product
-from manageSeaMarket.serializers import  ProductSerializer
+from manageSeaMarket.models import History, Product
+from manageSeaMarket.serializers import  HistorySerializer, ProductSerializer
 from seaMarket.settings import URL_PRODUCT
 
 # Create your views here.
@@ -74,15 +75,18 @@ class ManageProduct(APIView):
         try:
             createData =request.data
             serializedProduct = ProductSerializer(data=createData)
-            
+            print(createData)
             if serializedProduct.is_valid():
                 product =serializedProduct.save()
-                return HttpResponse({'id': product.id},status=201)
+                createData['reason'] = 'create'
+                print(product)
+                addHistory(createData,product)
+                return HttpResponse(status=201)
             else :
-                return HttpResponse(status=400, content='Bad Request: The request data is invalid.')
-        except KeyError:
+                return HttpResponse(status=400, content='Bad Request: The request data is invalid.'+" "+str(serializedProduct.errors))
+        except KeyError as e:
             # Handle KeyError exception
-            responses = 'Bad Request : The request data is invalid.'
+            responses = 'Bad Request : The request data is invalid.'+" "+str(e.__str__())
             return HttpResponse(status=400, content=responses)
     def delete(self, request, format=None):
         """
@@ -103,7 +107,8 @@ class ManageProduct(APIView):
             products = request.data['ids']
             for product in products:
                 try:
-                    Product.objects.get(productId=product).delete()
+                    print(product)
+                    Product.objects.get(productId=int(product)).delete()
                 except Product.DoesNotExist: 
                     return HttpResponse(status=404,content='Not Found: The product does not exist.(' + str(product) + ')')
             return HttpResponse(status=200, content='OK: This product has been deleted.(' + str(products) + ')')   
@@ -130,9 +135,11 @@ class ManageProduct(APIView):
         try:
             productDoesntExist = []
             data = request.data
+            print(data)
             for product in data:
                 try:
                     productToUpdate = Product.objects.get(id=product['id'])
+                    product = addHistory(product,productToUpdate)
                     serializedProduct = ProductSerializer(productToUpdate, data=product, partial=True)
                     Product.save(serializedProduct)
                 except Product.DoesNotExist:
@@ -142,3 +149,21 @@ class ManageProduct(APIView):
             responses = 'Bad Request : The request data is invalid.'
             return HttpResponse(status=400, content=responses)
     pass
+def addHistory(data,target:Product):
+    print(data)
+    if 'reason' in data:
+        reason =data.pop('reason')
+        history ={
+            "typeHistory": reason,
+            "addDate": datetime.datetime.now(),
+            "valueHistory": data['price'] * data['quantity'],
+            "product": target,
+        }
+        serializedHistory = HistorySerializer(data=history)
+        if serializedHistory.is_valid():
+            serializedHistory.save()
+        else:
+            print(serializedHistory.errors)
+        return data
+    else:
+        return data
