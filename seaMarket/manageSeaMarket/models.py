@@ -66,8 +66,9 @@ class Category(models.Model):
 class History(models.Model):
     typeHistory = models.CharField(max_length=100)
     valueHistory = models.DecimalField(max_digits=10, decimal_places=2)
+    quantityHistory = models.IntegerField(default=0)
     addDate = models.DateTimeField()
     product = models.ForeignKey(Product, on_delete=models.CASCADE,null=True)
     class Meta:
-        ordering = ['addDate','typeHistory','valueHistory']
+        ordering = ['addDate','typeHistory','valueHistory','quantityHistory']
         verbose_name = 'History'

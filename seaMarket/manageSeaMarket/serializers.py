@@ -15,4 +15,4 @@ class HistorySerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     class Meta:
         model = History
-        fields = ['addDate','typeHistory','valueHistory','product']
+        fields = ['addDate','typeHistory','quantityHistory','valueHistory','product']
