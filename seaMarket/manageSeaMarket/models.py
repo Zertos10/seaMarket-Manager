@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
+import datetime
 # Create your models here.
 class UserManager(BaseUserManager):
     def create_user(self,email,lastName=None,firstName=None,password=None):
@@ -63,10 +64,10 @@ class Category(models.Model):
         ordering = ['nameCategory']
         verbose_name = 'Category'
 class History(models.Model):
-    addDate = models.DateTimeField()
     typeHistory = models.CharField(max_length=100)
     valueHistory = models.DecimalField(max_digits=10, decimal_places=2)
-    products = models.ManyToManyField(Product)
+    addDate = models.DateTimeField()
+    product = models.ForeignKey(Product, on_delete=models.CASCADE,null=True)
     class Meta:
         ordering = ['addDate','typeHistory','valueHistory']
         verbose_name = 'History'
