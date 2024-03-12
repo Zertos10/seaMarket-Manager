@@ -2,8 +2,9 @@ from django.urls import path
 from rest_framework import routers
 
 from manageSeaMarket.views.requestsLogin import LoginView, RefreshTokenView
+from manageSeaMarket.views.requestsStats import RevenuesView
 
-from .views.requestsView import ManageProduct, ProductsLists, RedirectionProductDetail
+from .views.requestsView import ManageHistory, ManageProduct, ProductsLists, RedirectionProductDetail
 from .views.requestsCategory import CategoryManagement
 
 urlpatterns = [
@@ -13,4 +14,6 @@ urlpatterns = [
     path('category/',CategoryManagement.as_view(), name='manage-category'),
     path('login/',LoginView.as_view(), name='login'),
     path('login/refreshtoken/',RefreshTokenView.as_view(), name='refresh-token'),
+    path('manage_history/',ManageHistory.as_view(), name='manage-history'),
+    path('stats/revenues/',RevenuesView.as_view(), name='stats'),
 ]

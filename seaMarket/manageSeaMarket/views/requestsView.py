@@ -3,9 +3,11 @@ from http.client import responses
 from django.http import HttpResponse, JsonResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from django.forms.models import model_to_dict
 import requests
 from manageSeaMarket.models import History, Product
 from manageSeaMarket.serializers import  HistorySerializer, ProductSerializer
+from manageSeaMarket.services import ServicesCA as ca
 from seaMarket.settings import URL_PRODUCT
 
 # Create your views here.
@@ -30,8 +32,8 @@ class ProductsLists(APIView):
         print(Product.objects.count())
         for produit in Product.objects.all():
             serializedProduct = ProductSerializer(produit)
-            print(serializedProduct.data)
             res.append(serializedProduct.data)
+            print(res)
         return JsonResponse(res, safe=False)
     pass
 class RedirectionProductDetail(APIView):
@@ -78,9 +80,10 @@ class ManageProduct(APIView):
             print(createData)
             if serializedProduct.is_valid():
                 product =serializedProduct.save()
+                
                 createData['reason'] = 'create'
                 print(product)
-                addHistory(createData,product)
+                ca.HistoryManagement(createData,product).createProduct()
                 return HttpResponse(status=201)
             else :
                 return HttpResponse(status=400, content='Bad Request: The request data is invalid.'+" "+str(serializedProduct.errors))
@@ -107,7 +110,6 @@ class ManageProduct(APIView):
             products = request.data['ids']
             for product in products:
                 try:
-                    print(product)
                     Product.objects.get(productId=int(product)).delete()
                 except Product.DoesNotExist: 
                     return HttpResponse(status=404,content='Not Found: The product does not exist.(' + str(product) + ')')
@@ -116,32 +118,30 @@ class ManageProduct(APIView):
             # Handle KeyError exception
             responses = 'Bad Request : The request data is invalid.'
             return HttpResponse(status=400, content=responses)
-    def put(self, request, format=None):
-        try:
-            productDoesntExist = []
-            data = request.data
-            for product in data:
-                try:
-                    productToUpdate = Product.objects.get(id=product['id'])
-                    serializedProduct = ProductSerializer(productToUpdate, data=product)
-                    Product.save(serializedProduct)
-                except Product.DoesNotExist:
-                    productDoesntExist.append(product['productId'])
-        except KeyError:
-            # Handle KeyError exception
-            responses = 'Bad Request : The request data is invalid.'
-            return HttpResponse(status=400, content=responses)
     def patch(self, request, format=None):
         try:
             productDoesntExist = []
             data = request.data
-            print(data)
             for product in data:
                 try:
                     productToUpdate = Product.objects.get(id=product['id'])
-                    product = addHistory(product,productToUpdate)
-                    serializedProduct = ProductSerializer(productToUpdate, data=product, partial=True)
-                    Product.save(serializedProduct)
+                    
+                    if product.get('price') and product.get('quantity') and product.get('reason'):
+                        historyManagement =ca.HistoryManagement(product,productToUpdate)
+                        if product.get('reason') == 'sell' or product.get('reason') == 'unsold':
+                            return historyManagement.sellProduct()
+                        elif product.get('reason') == 'buy':
+                            return historyManagement.addProduct()
+                    else :
+                        if product.get('reason'):
+                            product.pop('reason')
+                        serializedProduct = ProductSerializer(productToUpdate, data=product, partial=True)
+                        if serializedProduct.is_valid():
+                            serializedProduct.save()
+                            return JsonResponse(serializedProduct.data,status=200)
+                        else: 
+                            return JsonResponse(serializedProduct.error_messages, status=400)
+                    
                 except Product.DoesNotExist:
                     productDoesntExist.append(product['productId'])
         except KeyError:
@@ -149,21 +149,22 @@ class ManageProduct(APIView):
             responses = 'Bad Request : The request data is invalid.'
             return HttpResponse(status=400, content=responses)
     pass
-def addHistory(data,target:Product):
-    print(data)
-    if 'reason' in data:
-        reason =data.pop('reason')
-        history ={
-            "typeHistory": reason,
-            "addDate": datetime.datetime.now(),
-            "valueHistory": data['price'] * data['quantity'],
-            "product": target,
-        }
-        serializedHistory = HistorySerializer(data=history)
-        if serializedHistory.is_valid():
-            serializedHistory.save()
-        else:
-            print(serializedHistory.errors)
-        return data
-    else:
-        return data
+class ManageHistory(APIView):
+    def get(self, request, format=None):
+        """
+        Retrieve all history and return them as a JSON response.
+
+        Args:
+            request: The HTTP request object.
+            format: The format of the response data (default is None).
+
+        Returns:
+            A JSON response containing all the history.
+
+        """
+        res = []
+        for history in History.objects.all():
+            serializedHistory = HistorySerializer(history)
+            res.append(serializedHistory.data)
+        return JsonResponse(res, safe=False)
+    pass
