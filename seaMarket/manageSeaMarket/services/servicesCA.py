@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+import json
+from multiprocessing.managers import BaseManager
 from django.http import JsonResponse
 from manageSeaMarket.models import History, Product
 import pandas as pd
@@ -6,16 +9,17 @@ import datetime
 
 from manageSeaMarket.serializers import HistorySerializer, ProductSerializer
 
-
-class RevenuesCalculation():
-    """Calcule le chiffre d'affaire d'une catégorie de produit sur une période donnée.
-    """
-    typeHistory = 'sell'
-    def __init__(self, category, typeDate:str,maxDate=None,minDate=None):
-        self.category = category
-        self.typeDate = typeDate
+class AbstractCalculation(ABC):
+    @abstractmethod
+    def calculate(self)->None:
+        pass
+class Calculation(AbstractCalculation):
+    def __init__(self, typeDate:str="year",category:str="all",maxDate=None,minDate=None,typeHistory="sell"):
+        self.typeDate = str(typeDate).lower().replace("'","")
         self.maxDate = maxDate
         self.minDate = minDate
+        self.category = category
+        self.typeHistory = typeHistory
         self.convertDate()
     def convertDate(self):
         if self.maxDate is not None:
@@ -23,19 +27,36 @@ class RevenuesCalculation():
         if self.minDate is not None:
             self.minDate = datetime.datetime.strptime(self.minDate, '%Y-%m-%dT%H:%M:%S.%fZ')
     def convertTypeDate(self):
-        if self.typeDate == 'day':
-            typeDate = 'D'
-        elif self.typeDate == 'week':
-            typeDate = 'W'
-        elif self.typeDate == 'month':
-            typeDate = 'M'
-        elif self.typeDate == 'year':
-            typeDate = 'Y'
+        
+        intialDate:str = "D"
+        if self.typeDate == "day":
+            intialDate = "D"
+        elif self.typeDate == "week":
+            intialDate = "W-MON"
+        elif self.typeDate == "month":
+            intialDate = "MS"
+        elif self.typeDate == "year":
+            intialDate = "YS"
         else :
-            typeDate = 'W'
-        return typeDate
-    def calculateTurnover(self):
-
+            intialDate = "YS"
+        return intialDate
+    def convertDataToDataFrame(self,historySerializer:HistorySerializer):
+        df = pd.DataFrame({
+            "date": [history['addDate'] for history in historySerializer.data],
+            "value": [history['valueHistory'] for history in historySerializer.data],
+            "quantity": [history['quantityHistory'] for history in historySerializer.data]
+        })
+        df['date'] = pd.to_datetime(df['date'])
+        df['value']= df['value'].astype(float)
+        df['quantity'] = df['quantity'].astype(int)
+        return df
+    
+class RevenuesCalculation(Calculation):
+    """Calcule le chiffre d'affaire d'une catégorie de produit sur une période donnée.
+    """
+    def __init__(self, category, typeDate:str,maxDate=None,minDate=None):
+        super().__init__(typeDate,category,maxDate,minDate,typeHistory="sell")
+    def calculate(self):
         if self.minDate is None:
             self.minDate = datetime.datetime.now()
             print(self.minDate)
@@ -45,21 +66,43 @@ class RevenuesCalculation():
         else:
             result = History.objects.filter(addDate__range=[self.maxDate,self.minDate], typeHistory=self.typeHistory, products__category=self.category)
         historySerializer = HistorySerializer(result, many=True)
-        print(result)
-        df = pd.DataFrame({
-            "date": [history['addDate'] for history in historySerializer.data],
-            "value": [history['valueHistory'] for history in historySerializer.data],
-            "quantity": [history['quantityHistory'] for history in historySerializer.data]
-        })
-        df['date'] = pd.to_datetime(df['date']) - pd.Timedelta(days=1)
-        df['value']= df['value'].astype(float)
-        df['quantity'] = df['quantity'].astype(int)
-
-        resultDataFrame = df.groupby(pd.Grouper(key="date", freq=self.convertTypeDate()+"-MON")).sum().reset_index()
+        resultDataFrame = self.convertDataToDataFrame(historySerializer=historySerializer).groupby(pd.Grouper(key="date", freq=self.convertTypeDate())).sum().reset_index()
         print(resultDataFrame.to_json())
         return resultDataFrame.to_json(date_format='iso', orient='records')
     
-    
+
+class MarginCalculation(Calculation):
+    """Calcul la marges des produits vendus.
+    """
+    def __init__(self, category, typeDate:str,maxDate=None,minDate=None):
+        super().__init__(category=category,typeDate=typeDate,typeHistory="",maxDate=maxDate,minDate=minDate)
+        pass
+    def calculate(self):
+        result = History.objects.filter(typeHistory__in=["sell","buy","create"], product__category__id=self.category)
+        if result is None:
+            return JsonResponse({'error':'The category does not exist'}, status=400)
+        historySerializer = HistorySerializer(result, many=True)
+        convert =self.convertDataToDataFrame(historySerializer=historySerializer)
+        convert['type'] = [history['typeHistory'] for history in historySerializer.data]
+        convert['value'] = convert.apply(lambda row: -row['value'] if row['type'] == 'buy' or row['type'] == 'create' else row['value'], axis=1)
+        convert =convert.groupby(pd.Grouper(key="date", freq=self.convertTypeDate()))['value'].sum(numeric_only=True).reset_index()
+        return convert.to_json(date_format='iso', orient='records')
+    pass
+class AccountingResult(MarginCalculation):
+    category = "3"
+    typeDate = "year"
+    def __init__(self,tax=0.3):
+        self.tax = tax
+        super().__init__(self.category, self.typeDate)
+    def __call__(self):
+        result = self.calculate()
+        print(result)
+        result = json.loads(result)
+        print(len(result))
+        if result[0]['value'] >0: 
+            return result[0]['value'] * self.tax
+        else:
+            return 0            
 class HistoryManagement():
     def __init__(self, data,productToUpdate:Product):
         self.data = data

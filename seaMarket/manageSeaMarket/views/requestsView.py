@@ -7,7 +7,7 @@ from django.forms.models import model_to_dict
 import requests
 from manageSeaMarket.models import History, Product
 from manageSeaMarket.serializers import  HistorySerializer, ProductSerializer
-from manageSeaMarket.services import ServicesCA as ca
+from manageSeaMarket.services.servicesCA import HistoryManagement
 from seaMarket.settings import URL_PRODUCT
 
 # Create your views here.
@@ -83,7 +83,7 @@ class ManageProduct(APIView):
                 
                 createData['reason'] = 'create'
                 print(product)
-                ca.HistoryManagement(createData,product).createProduct()
+                HistoryManagement(createData,product).createProduct()
                 return HttpResponse(status=201)
             else :
                 return HttpResponse(status=400, content='Bad Request: The request data is invalid.'+" "+str(serializedProduct.errors))
@@ -127,7 +127,7 @@ class ManageProduct(APIView):
                     productToUpdate = Product.objects.get(id=product['id'])
                     
                     if product.get('price') and product.get('quantity') and product.get('reason'):
-                        historyManagement =ca.HistoryManagement(product,productToUpdate)
+                        historyManagement =HistoryManagement(product,productToUpdate)
                         if product.get('reason') == 'sell' or product.get('reason') == 'unsold':
                             return historyManagement.sellProduct()
                         elif product.get('reason') == 'buy':

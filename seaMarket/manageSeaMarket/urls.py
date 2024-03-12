@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework import routers
 
 from manageSeaMarket.views.requestsLogin import LoginView, RefreshTokenView
-from manageSeaMarket.views.requestsStats import RevenuesView
+from manageSeaMarket.views.requestsStats import AccountingView, MarginView, RevenuesView
 
 from .views.requestsView import ManageHistory, ManageProduct, ProductsLists, RedirectionProductDetail
 from .views.requestsCategory import CategoryManagement
@@ -16,4 +16,6 @@ urlpatterns = [
     path('login/refreshtoken/',RefreshTokenView.as_view(), name='refresh-token'),
     path('manage_history/',ManageHistory.as_view(), name='manage-history'),
     path('stats/revenues/',RevenuesView.as_view(), name='stats'),
+    path('stats/margin/',MarginView.as_view(), name='margin'),
+    path('accounting/',AccountingView.as_view(), name='accounting')
 ]
