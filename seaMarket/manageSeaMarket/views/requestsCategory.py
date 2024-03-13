@@ -33,5 +33,12 @@ class CategoryManagement(APIView):
         except KeyError:
             response = JsonResponse({'error': 'Invalid request data'})
             return HttpResponse(response, status=400)
-        pass
+    def delete(self,request,format=None):
+        try:
+            category = Category.objects.get(pk=request.data['id'])
+            category.delete()
+            return JsonResponse({'message':'Category deleted'}, status=200)
+        except KeyError:
+            response = JsonResponse({'error': 'Invalid request data'})
+            return JsonResponse(response, status=400)
     pass

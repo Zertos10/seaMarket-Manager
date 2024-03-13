@@ -1,3 +1,4 @@
+from tokenize import TokenError
 from django.http import HttpResponse, JsonResponse
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
@@ -24,5 +25,8 @@ class LoginView(APIView):
 class RefreshTokenView(APIView):
     def post(self, request, format=None):
         refreshToken = request.data['refresh']
-        token = RefreshToken(refreshToken)
-        return JsonResponse({'access':str(token.access_token)},status=200)
+        try:
+            token = RefreshToken(refreshToken)
+            return JsonResponse({'access':str(token.access_token)},status=200)
+        except TokenError:
+            return HttpResponse(status=401)
