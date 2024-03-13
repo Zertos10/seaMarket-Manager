@@ -38,7 +38,7 @@ class User(AbstractBaseUser):
     
     def __str__(self):
         return self.email
-    def has_perm(self,perm,obj=None):
+    def has_perm(self,perm=None,obj=None):
         return self.isAdmin
     def has_module_perms(self,app_label):
         # Check if user has permission to view the app 'app_label'
