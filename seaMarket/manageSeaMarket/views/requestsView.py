@@ -33,7 +33,6 @@ class ProductsLists(APIView):
         for produit in Product.objects.all():
             serializedProduct = ProductSerializer(produit)
             res.append(serializedProduct.data)
-            print(res)
         return JsonResponse(res, safe=False)
     pass
 class RedirectionProductDetail(APIView):
@@ -80,13 +79,12 @@ class ManageProduct(APIView):
             print(createData)
             if serializedProduct.is_valid():
                 product =serializedProduct.save()
-                
                 createData['reason'] = 'create'
                 print(product)
                 HistoryManagement(createData,product).createProduct()
-                return HttpResponse(status=201)
+                return JsonResponse(serializedProduct.data,status=201)
             else :
-                return HttpResponse(status=400, content='Bad Request: The request data is invalid.'+" "+str(serializedProduct.errors))
+                return JsonResponse(serializedProduct.error_messages, status=400)
         except KeyError as e:
             # Handle KeyError exception
             responses = 'Bad Request : The request data is invalid.'+" "+str(e.__str__())
@@ -112,16 +110,17 @@ class ManageProduct(APIView):
                 try:
                     Product.objects.get(productId=int(product)).delete()
                 except Product.DoesNotExist: 
-                    return HttpResponse(status=404,content='Not Found: The product does not exist.(' + str(product) + ')')
-            return HttpResponse(status=200, content='OK: This product has been deleted.(' + str(products) + ')')   
+                    return JsonResponse({'error':'Product does not exist'+ product,'success':'product'}, status=400)
+            return JsonResponse({'message':'Products deleted','ids': products }, status=200)   
         except KeyError:
             # Handle KeyError exception
             responses = 'Bad Request : The request data is invalid.'
-            return HttpResponse(status=400, content=responses)
+            return JsonResponse({'error':responses}, status=400)
     def patch(self, request, format=None):
         try:
             productDoesntExist = []
             data = request.data
+            responseProductUpdated= []
             for product in data:
                 try:
                     productToUpdate = Product.objects.get(id=product['id'])
@@ -138,17 +137,17 @@ class ManageProduct(APIView):
                         serializedProduct = ProductSerializer(productToUpdate, data=product, partial=True)
                         if serializedProduct.is_valid():
                             serializedProduct.save()
-                            return JsonResponse(serializedProduct.data,status=200)
+                            responseProductUpdated.append(JsonResponse(serializedProduct.data,status=200))
                         else: 
-                            return JsonResponse(serializedProduct.error_messages, status=400)
+                            responseProductUpdated.append(JsonResponse([{"error":serializedProduct.error_messages,"id":product}], status=400))
                     
                 except Product.DoesNotExist:
-                    productDoesntExist.append(product['productId'])
+                    responseProductUpdated.append(JsonResponse({'error':'Product does not exist','id':product}, status=400))
         except KeyError:
             # Handle KeyError exception
             responses = 'Bad Request : The request data is invalid.'
             return HttpResponse(status=400, content=responses)
-    pass
+        return JsonResponse(responseProductUpdated, safe=False,status=200)
 class ManageHistory(APIView):
     def get(self, request, format=None):
         """

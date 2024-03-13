@@ -11,9 +11,9 @@ class RevenuesView(APIView):
             service = RevenuesCalculation(category=data_params.get('category'), typeDate=data_params.get('type'), 
                                              maxDate= data_params.get('maxDate') if data_params.get('maxDate') else None, 
                                              minDate=data_params.get('minDate') if data_params.get('maxDate') else None)
-            return HttpResponse(service.calculate(),status=200)
+            return JsonResponse(service.calculate(),status=200)
         else:
-            return HttpResponse(status=400) 
+            return JsonResponse({"error":"Missing parameters"},status=400) 
     pass
 class MarginView(APIView):
     def get(self,request,format=None):
@@ -23,9 +23,9 @@ class MarginView(APIView):
                                         typeDate=data_params.get('type'),
                                         maxDate= data_params.get('maxDate') if data_params.get('maxDate') else None, 
                                         minDate=data_params.get('minDate') if data_params.get('maxDate') else None)
-            return HttpResponse(service.calculate(),status=200)
+            return JsonResponse(service.calculate(),status=200)
         else:
-            return HttpResponse(status=400)
+            return JsonResponse({"error":"Missing parameter"},status=400)
 class AccountingView(APIView):
     def get(self,request,format=None):
         service = AccountingResult()
