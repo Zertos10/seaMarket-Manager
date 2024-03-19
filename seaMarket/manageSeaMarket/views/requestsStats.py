@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from manageSeaMarket.services.servicesCA import AccountingResult, MarginCalculation, RevenuesCalculation
 
 class RevenuesView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         data_params = request.query_params
         if data_params.get('type') and data_params.get('category'):
@@ -16,6 +16,7 @@ class RevenuesView(APIView):
             return JsonResponse({"error":"Missing parameters"},status=400) 
     pass
 class MarginView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self,request,format=None):
         data_params = request.query_params
         if data_params.get('category'):
@@ -27,6 +28,7 @@ class MarginView(APIView):
         else:
             return JsonResponse({"error":"Missing parameter"},status=400)
 class AccountingView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self,request,format=None):
         service = AccountingResult()
         return JsonResponse({'tax':service()},status=200)
