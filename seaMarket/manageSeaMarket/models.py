@@ -3,6 +3,9 @@ from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
 import datetime
+
+from django.dispatch import receiver
+from django.db.models.signals import post_save
 # Create your models here.
 class UserManager(BaseUserManager):
     def create_user(self,email,lastName=None,firstName=None,password=None):
@@ -48,15 +51,23 @@ class User(AbstractBaseUser):
         return self.isAdmin
 class Product(models.Model):
     productId = models.IntegerField(unique=True)
-    salePrice = models.DecimalField(max_digits=10, decimal_places=2)
+    salePrice = models.DecimalField(max_digits=10, decimal_places=2,default=0.00)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    percentSale = models.DecimalField(max_digits=5, decimal_places=2)
-    quantity = models.IntegerField()
-    sellArticle = models.IntegerField()
-    comments = models.TextField()
+    percentSale = models.DecimalField(max_digits=5, decimal_places=2,default=0.00)
+    quantity = models.IntegerField(default=0)
+    sellArticle = models.IntegerField(default=0)
+    comments = models.TextField(blank=True,null=True)
     class Meta:
         ordering = ['productId']
         verbose_name = 'Product'
+@receiver(post_save, sender=Product)
+def _post_save_receiver(sender,instance,created, **kwargs):
+    if created:
+        default_category,created = Category.objects.get_or_create(nameCategory="all")
+        print(default_category,created)
+        Category.objects.get(nameCategory="all").products.add(instance)
+    pass
+
 class Category(models.Model):
     nameCategory = models.CharField(max_length=100)
     products = models.ManyToManyField(Product)
