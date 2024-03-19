@@ -75,8 +75,8 @@ class ManageProduct(APIView):
         
         try:
             createData =request.data
-            serializedProduct = ProductSerializer(data=createData)
-            print(createData)
+            serializedProduct = ProductSerializer(data=request.data)
+            print(serializedProduct.required)
             if serializedProduct.is_valid():
                 product =serializedProduct.save()
                 createData['reason'] = 'create'
@@ -84,11 +84,11 @@ class ManageProduct(APIView):
                 HistoryManagement(createData,product).createProduct()
                 return JsonResponse(serializedProduct.data,status=201)
             else :
-                return JsonResponse(serializedProduct.error_messages, status=400)
+                print(serializedProduct.error_messages)
+                return JsonResponse(serializedProduct.errors, status=400)
         except KeyError as e:
-            # Handle KeyError exception
-            responses = 'Bad Request : The request data is invalid.'+" "+str(e.__str__())
-            return HttpResponse(status=400, content=responses)
+            print("exception"+e.__str__())
+            return HttpResponse(status=400, content=e.__str__())
     def delete(self, request, format=None):
         """
         Permet de supprimer un ou plusieurs produits.
@@ -123,7 +123,7 @@ class ManageProduct(APIView):
             responseProductUpdated= []
             for product in data:
                 try:
-                    productToUpdate = Product.objects.get(id=product['id'])
+                    productToUpdate = Product.objects.get(id=int(product['id']))
                     
                     if product.get('price') and product.get('quantity') and product.get('reason'):
                         historyManagement =HistoryManagement(product,productToUpdate)

@@ -7,7 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id','email','lastName','firstName','isAdmin']
 
 class ProductSerializer(serializers.ModelSerializer):
-    categories = serializers.PrimaryKeyRelatedField(many=True,queryset=Category.objects.all(),source='category_set')
+    categories = serializers.PrimaryKeyRelatedField(many=True,queryset=Category.objects.all(),source='category_set',required=False)
     class Meta:
         model = Product
         fields = ['id','productId','salePrice','price','percentSale','quantity','sellArticle','comments','categories']
