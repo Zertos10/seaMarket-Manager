@@ -123,7 +123,7 @@ class ManageProduct(APIView):
             responseProductUpdated= []
             for product in data:
                 try:
-                    productToUpdate = Product.objects.get(id=product['id'])
+                    productToUpdate = Product.objects.get(id=int(product['id']))
                     
                     if product.get('price') and product.get('quantity') and product.get('reason'):
                         historyManagement =HistoryManagement(product,productToUpdate)
