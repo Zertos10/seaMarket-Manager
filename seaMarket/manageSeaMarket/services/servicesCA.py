@@ -62,23 +62,24 @@ class RevenuesCalculation(Calculation):
             print(self.minDate)
         result = None
         if self.maxDate is None:
-            result = History.objects.filter(typeHistory=self.typeHistory, product__category__id= self.category if self.category is not None else 1)
+            result = History.objects.filter(typeHistory=self.typeHistory, product__category__nameCategory= self.category if self.category is not None else "all")
         else:
             result = History.objects.filter(addDate__range=[self.maxDate,self.minDate], typeHistory=self.typeHistory, products__category=self.category)
         historySerializer = HistorySerializer(result, many=True)
         resultDataFrame = self.convertDataToDataFrame(historySerializer=historySerializer).groupby(pd.Grouper(key="date", freq=self.convertTypeDate())).sum().reset_index()
+        resultDataFrame['date'] = resultDataFrame['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
         print(resultDataFrame.to_json())
-        return resultDataFrame.to_json(date_format='iso', orient='records')
+        return resultDataFrame.to_json(date_format='iso', orient='records',indent=4)
     
 
 class MarginCalculation(Calculation):
     """Calcul la marges des produits vendus.
     """
-    def __init__(self, category, typeDate:str,maxDate=None,minDate=None):
+    def __init__(self, category:str, typeDate:str,maxDate=None,minDate=None):
         super().__init__(category=category,typeDate=typeDate,typeHistory="",maxDate=maxDate,minDate=minDate)
         pass
     def calculate(self):
-        result = History.objects.filter(typeHistory__in=["sell","buy","create"], product__category__id=self.category)
+        result = History.objects.filter(typeHistory__in=["sell","buy","create"], product__category__nameCategory=self.category)
         if result is None:
             return JsonResponse({'error':'The category does not exist'}, status=400)
         historySerializer = HistorySerializer(result, many=True)
@@ -86,10 +87,11 @@ class MarginCalculation(Calculation):
         convert['type'] = [history['typeHistory'] for history in historySerializer.data]
         convert['value'] = convert.apply(lambda row: -row['value'] if row['type'] == 'buy' or row['type'] == 'create' else row['value'], axis=1)
         convert =convert.groupby(pd.Grouper(key="date", freq=self.convertTypeDate()))['value'].sum(numeric_only=True).reset_index()
-        return convert.to_json(date_format='iso', orient='records')
+        convert['date'] = convert['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+        return convert.to_json(date_format='iso', orient='records',indent=4)
     pass
 class AccountingResult(MarginCalculation):
-    category = "3"
+    category = "all"
     typeDate = "year"
     def __init__(self,tax=0.3):
         self.tax = tax
