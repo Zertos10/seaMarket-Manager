@@ -43,6 +43,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'manageSeaMarket.apps.ManageseamarketConfig'
 ]
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.MD5PasswordHasher',
+]
 AUTH_USER_MODEL = 'manageSeaMarket.User'
 
 REST_FRAMEWORK = {
