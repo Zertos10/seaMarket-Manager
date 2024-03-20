@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.forms.models import model_to_dict
 import requests
-from manageSeaMarket.models import History, Product
+from manageSeaMarket.models import Category, History, Product
 from manageSeaMarket.serializers import  HistorySerializer, ProductSerializer
 from manageSeaMarket.services.servicesCA import HistoryManagement
 from seaMarket.settings import URL_PRODUCT
@@ -78,11 +78,17 @@ class ManageProduct(APIView):
         
         try:
             createData =request.data
+            if createData.get('categories'):
+                categories = createData.pop('categories')
             serializedProduct = ProductSerializer(data=request.data)
             print(serializedProduct.required)
             if serializedProduct.is_valid():
                 product =serializedProduct.save()
-                createData['reason'] = 'create'
+                if categories:
+                    for category in categories:
+                        categoryObject = Category.objects.get(id=category)
+                        categoryObject.products.add(product)
+                        categoryObject.save()
                 print(product)
                 HistoryManagement(createData,product).createProduct()
                 return JsonResponse(serializedProduct.data,status=201)
