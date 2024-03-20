@@ -32,7 +32,10 @@ class ProductsLists(APIView):
         print(Product.objects.count())
         for produit in Product.objects.all():
             serializedProduct = ProductSerializer(produit)
-            res.append(serializedProduct.data)
+            requestProduct = requests.get(url=URL_PRODUCT + "product/" + str(produit.productId) + "/")
+            data = serializedProduct.data
+            data['name'] = requestProduct.json()['name']
+            res.append(data)
         return JsonResponse(res, safe=False)
     pass
 class RedirectionProductDetail(APIView):
