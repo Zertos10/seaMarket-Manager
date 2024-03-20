@@ -1,3 +1,4 @@
+import hashlib
 from tokenize import TokenError
 from django.http import HttpResponse, JsonResponse
 from rest_framework.views import APIView
@@ -35,10 +36,11 @@ class LoginView(APIView):
     def check_hash(self, email, hashed_password):
         try:
             user = User.objects.get(email=email)
+            password_hash = user.password
         except models.User.DoesNotExist:
             return None
 
-        if check_password(hashed_password, user.password):
+        if hashed_password == password_hash:
             return user
 
         return None

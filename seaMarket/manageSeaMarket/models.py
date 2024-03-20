@@ -1,7 +1,10 @@
+import hashlib
 from django.db import models
 from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
+from django.contrib.auth.hashers import make_password
+
 import datetime
 
 from django.dispatch import receiver
@@ -16,7 +19,8 @@ class UserManager(BaseUserManager):
             lastName=lastName,
             firstName=firstName
             )
-        user.set_password(password)
+        md5_password = hashlib.md5(password.encode()).hexdigest()
+        user.set_password(md5_password)
         user.save(using=self._db)
         return user
     def create_superuser(self,email,password):
@@ -27,6 +31,7 @@ class UserManager(BaseUserManager):
         user.isAdmin = True
         user.save(using=self._db)
         return user
+    
 
 # Register your models here.
 class User(AbstractBaseUser):
@@ -45,6 +50,9 @@ class User(AbstractBaseUser):
     def has_module_perms(self,app_label):
         # Check if user has permission to view the app 'app_label'
         return True
+    def set_password(self,raw_password):
+        md5_password = hashlib.md5(raw_password.encode())
+        self.password = md5_password.hexdigest()
     @property
     def is_staff(self):
         return self.isAdmin
