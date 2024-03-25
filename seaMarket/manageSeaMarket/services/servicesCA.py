@@ -97,24 +97,28 @@ class AccountingResult(MarginCalculation):
         self.tax = tax
         super().__init__(self.category, self.typeDate)
     def __call__(self):
-        result = self.calculate()
-        print(result)
-        result = json.loads(result)
-        print(len(result))
-        if result[0]['value'] >0: 
-            return result[0]['value'] * self.tax
-        else:
-            return 0            
+        try:
+            result = self.calculate()
+            print(result)
+            result = json.loads(result)
+            print(len(result))
+            if result[0]['value'] >0: 
+                return result[0]['value'] * self.tax
+            else:
+                return 0
+        except:
+            return JsonResponse({'error':'An error occured'}, status=400)        
 class HistoryManagement():
     def __init__(self, data,productToUpdate:Product):
         self.data = data
         self.productToUpdate = productToUpdate
         self.history = {}
+        print(self.data['price'] * self.data['quantity'])
     def createProduct(self):
         self.history = {
             'typeHistory': 'create',
             'valueHistory': self.data['price'] * self.data['quantity'],
-            'quantityHistory': self.data['quantity'],
+            'quantityHistory': int(self.data['quantity']),
             'addDate': datetime.datetime.now(),
             'product': self.productToUpdate.pk
         }
@@ -127,20 +131,23 @@ class HistoryManagement():
             return JsonResponse(historySerializer.errors, status=400)       
             
     def addProduct(self):
+        print(self.data)
         self.history ={
             'typeHistory': 'buy',
-            'valueHistory': self.data['price'] * self.data['quantity'],
-            'quantityHistory': self.data['quantity'],
+            'valueHistory': self.data.get('price') * (self.productToUpdate.quantity - self.data['quantity']),
+            'quantityHistory':(self.productToUpdate.quantity - self.data['quantity']),
             'addDate': datetime.datetime.now(),
             'product': self.productToUpdate.pk
         }
         historySerializer = HistorySerializer(data=self.history)
-        self.data['quantity'] = self.productToUpdate.quantity + self.data.get('quantity')
+        self.data['quantity'] = self.data.get('quantity')
+        print(self.data)
         productSerializer = ProductSerializer(self.productToUpdate, data=self.data, partial=True)
         try:
             productSerializer.is_valid(raise_exception=True)
             productSerializer.save()
         except:
+            print(productSerializer.errors)
             return JsonResponse(productSerializer.errors, status=400)
         return self.addHistory(historySerializer)
         
@@ -151,12 +158,12 @@ class HistoryManagement():
             self.history ={
                 'typeHistory': 'unsold',
                 'valueHistory': 0,
-                'quantityHistory': self.data['quantity'],
+                'quantityHistory': (self.productToUpdate.quantity -self.data['quantity']),
                 'addDate': datetime.datetime.now(),
                 'product': self.productToUpdate.pk,
             }
             historySerialier = HistorySerializer(data=self.history)
-            self.data['quantity'] = self.productToUpdate.quantity - self.data.get('quantity')
+            self.data['quantity'] = self.data.get('quantity')
             productSerializer = ProductSerializer(self.productToUpdate, data=self.data, partial=True)
             try: 
                 productSerializer.is_valid(raise_exception=True)
@@ -167,14 +174,14 @@ class HistoryManagement():
         else:
             self.history ={
                 'typeHistory': 'sell',
-                'valueHistory': self.data['price'] * self.data['quantity'],
-                'quantityHistory': self.data['quantity'],
+                'valueHistory': self.data['price'] * (self.productToUpdate.quantity -self.data['quantity']),
+                'quantityHistory': (self.productToUpdate.quantity -self.data['quantity']),
                 'addDate': datetime.datetime.now(),
                 'product': self.productToUpdate.pk,
             }
             historySerializer = HistorySerializer(data=self.history)
-            self.data['quantity'] = self.productToUpdate.quantity - self.data.get('quantity')
-            self.data['sellArticle'] = self.productToUpdate.sellArticle + self.data.get('quantity')
+            self.data['quantity'] = self.data.get('quantity')
+            self.data['sellArticle'] = self.productToUpdate.sellArticle + (self.productToUpdate.sellArticle+self.data.get('quantity'))
             productSerializer = ProductSerializer(self.productToUpdate, data=self.data, partial=True)
             try: 
                 productSerializer.is_valid(raise_exception=True)
