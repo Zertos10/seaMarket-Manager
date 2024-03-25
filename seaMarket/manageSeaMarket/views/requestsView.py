@@ -16,7 +16,7 @@ class ProductsLists(APIView):
     A view for retrieving product lists.
     """
     permission_classes = [IsAuthenticated]
-    def get(self, request, format=None):
+    def get(self, request,pk=None, format=None):
         """
         Retrieve all products and return them as a JSON response.
 
@@ -28,16 +28,49 @@ class ProductsLists(APIView):
             A JSON response containing all the products.
 
         """
+        if pk:
+            return ProductsLists.get_object_by_category(pk)
         res = []
         print(Product.objects.count())
         for produit in Product.objects.all():
             serializedProduct = ProductSerializer(produit)
             requestProduct = requests.get(url=URL_PRODUCT + "product/" + str(produit.productId) + "/")
             data = serializedProduct.data
-            data['name'] = requestProduct.json()['name']
+            data['name'] = requestProduct.json().get('name')
             res.append(data)
         return JsonResponse(res, safe=False)
     pass
+    def get_object_by_category(pk:int):
+        res = []
+        for produit in Product.objects.filter(category__id=pk):
+            serializedProduct = ProductSerializer(produit)
+            requestProduct = requests.get(url=URL_PRODUCT + "product/" + str(produit.productId) + "/")
+            data = serializedProduct.data
+            data['name'] = requestProduct.json().get('name')
+            res.append(data)
+        return JsonResponse(res, safe=False)
+class RedirectionProducts(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self,request,format=None):
+        """
+        Retrieve all products and return them as a JSON response.
+
+        Args:
+            request: The HTTP request object.
+            format: The format of the response data (default is None).
+
+        Returns:
+            A JSON response containing all the products.
+
+        """
+        resultRequest =requests.get(url=URL_PRODUCT + "products/")
+        responses = resultRequest.json()
+        product_ids = [product.productId for product in Product.objects.all()]
+        resultReponse = []
+        for response in responses:
+            if response.get('id') not in product_ids:
+                resultReponse.append(response)
+        return JsonResponse(resultReponse, safe=False)
 class RedirectionProductDetail(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, pk, format=None):
@@ -78,22 +111,24 @@ class ManageProduct(APIView):
         
         try:
             createData =request.data
+            categories = None
+            print(createData)
             if createData.get('categories'):
                 categories = createData.pop('categories')
             serializedProduct = ProductSerializer(data=request.data)
-            print(serializedProduct.required)
             if serializedProduct.is_valid():
                 product =serializedProduct.save()
                 if categories:
                     for category in categories:
                         categoryObject = Category.objects.get(id=category)
                         categoryObject.products.add(product)
+                        serializedProduct.update({'category':categoryObject})
                         categoryObject.save()
                 print(product)
                 HistoryManagement(createData,product).createProduct()
                 return JsonResponse(serializedProduct.data,status=201)
             else :
-                print(serializedProduct.error_messages)
+                print(serializedProduct.errors)
                 return JsonResponse(serializedProduct.errors, status=400)
         except KeyError as e:
             print("exception"+e.__str__())
@@ -135,6 +170,8 @@ class ManageProduct(APIView):
                     productToUpdate = Product.objects.get(id=int(product['id']))
                     
                     if product.get('price') and product.get('quantity') and product.get('reason'):
+                        product['price'] = float(product.get('price'))
+                        product['quantity'] = float(product.get('quantity'))
                         historyManagement =HistoryManagement(product,productToUpdate)
                         if product.get('reason') == 'sell' or product.get('reason') == 'unsold':
                             return historyManagement.sellProduct()
@@ -146,10 +183,9 @@ class ManageProduct(APIView):
                         serializedProduct = ProductSerializer(productToUpdate, data=product, partial=True)
                         if serializedProduct.is_valid():
                             serializedProduct.save()
-                            responseProductUpdated.append(JsonResponse(serializedProduct.data,status=200))
+                            responseProductUpdated.append(serializedProduct.data)
                         else: 
-                            responseProductUpdated.append(JsonResponse([{"error":serializedProduct.error_messages,"id":product}], status=400))
-                    
+                            responseProductUpdated.append({"error":serializedProduct.errors,"id":product})
                 except Product.DoesNotExist:
                     responseProductUpdated.append(JsonResponse({'error':'Product does not exist','id':product}, status=400))
         except KeyError:
