@@ -9,6 +9,7 @@ from .views.requestsView import ManageHistory, ManageProduct, ProductsLists, Red
 from .views.requestsCategory import CategoryManagement
 
 urlpatterns = [
+    path('', ProductsLists.as_view(), name='products-lists'),
     #Products
     path('products/', ProductsLists.as_view(), name='products-lists'),
     path('products/<int:pk>/', ProductsLists.as_view(), name='products-lists'),

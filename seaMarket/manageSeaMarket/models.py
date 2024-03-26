@@ -4,6 +4,7 @@ from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
 from django.contrib.auth.hashers import make_password
+from django.db.models.signals import m2m_changed
 
 import datetime
 
@@ -70,9 +71,8 @@ class Product(models.Model):
 @receiver(post_save, sender=Product)
 def _post_save_receiver(sender,instance,created, **kwargs):
     if created:
-        default_category,created = Category.objects.get_or_create(nameCategory="all")
-        print(default_category,created)
-        Category.objects.get(nameCategory="all").products.add(instance)
+        all_category, _ = Category.objects.get_or_create(nameCategory="all")
+        instance.category_set.add(all_category)
     pass
 
 class Category(models.Model):
@@ -81,6 +81,13 @@ class Category(models.Model):
     class Meta:
         ordering = ['nameCategory']
         verbose_name = 'Category'
+
+@receiver(m2m_changed, sender=Product.category_set.through)
+def add_all_category(sender, instance, action, **kwargs):
+    if action == "post_add":
+        all_category, created = Category.objects.get_or_create(nameCategory="all")
+        if all_category not in instance.category_set.all():
+            instance.category_set.add(all_category)
 class History(models.Model):
     typeHistory = models.CharField(max_length=100)
     valueHistory = models.DecimalField(max_digits=10, decimal_places=2)
