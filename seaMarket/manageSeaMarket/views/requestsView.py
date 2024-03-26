@@ -113,17 +113,9 @@ class ManageProduct(APIView):
             createData =request.data
             categories = None
             print(createData)
-            if createData.get('categories'):
-                categories = createData.pop('categories')
             serializedProduct = ProductSerializer(data=request.data)
             if serializedProduct.is_valid():
                 product =serializedProduct.save()
-                if categories:
-                    for category in categories:
-                        categoryObject = Category.objects.get(id=category)
-                        categoryObject.products.add(product)
-                        serializedProduct.update({'category':categoryObject})
-                        categoryObject.save()
                 print(product)
                 HistoryManagement(createData,product).createProduct()
                 return JsonResponse(serializedProduct.data,status=201)

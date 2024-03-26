@@ -18,6 +18,8 @@ class LoginView(APIView):
         result =self.check_hash(email, password)
         user = None
         if result is None:
+            password = hashlib.md5(password.encode()).hexdigest()
+            print(password)
             user = authenticate(email=email, password=password)
         else:
             user = result
