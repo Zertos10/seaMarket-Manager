@@ -5,13 +5,16 @@ from manageSeaMarket.views.requestsLogin import LoginView, RefreshTokenView
 from manageSeaMarket.views.requestsStats import AccountingView, MarginView, RevenuesView
 from manageSeaMarket.views.requestsUser import UserMangerView
 
-from .views.requestsView import ManageHistory, ManageProduct, ProductsLists, RedirectionProductDetail
+from .views.requestsView import ManageHistory, ManageProduct, ProductsLists, RedirectionProductDetail, RedirectionProducts
 from .views.requestsCategory import CategoryManagement
 
 urlpatterns = [
     #Products
     path('products/', ProductsLists.as_view(), name='products-lists'),
+    path('products/<int:pk>/', ProductsLists.as_view(), name='products-lists'),
+
     path('product/<int:pk>/',RedirectionProductDetail.as_view(), name='product-detail'),
+    path('products/redirection/',RedirectionProducts.as_view(), name='products-redirection'),
     path('manage_product/',ManageProduct.as_view(), name='manage-product'),
     path('category/',CategoryManagement.as_view(), name='manage-category'),
     #Authentification

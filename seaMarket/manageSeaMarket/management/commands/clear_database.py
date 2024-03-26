@@ -2,8 +2,9 @@ from django.core.management.base import BaseCommand
 from django.core.management.color import no_style
 from django.db import connection
 from django.contrib.auth import authenticate
-from manageSeaMarket.models import Category, Product
+from manageSeaMarket.models import Category, History, Product, User
 import getpass
+import hashlib
 
 class Command(BaseCommand):
     help = 'Delete all category and product in the database'
@@ -12,7 +13,8 @@ class Command(BaseCommand):
             print('Connexion requise')
             email = input('Email : ')
             password = getpass.getpass('Password : ')
-            user = authenticate(email=email, password=password)
+            hashed_password = hashlib.md5(password.encode()).hexdigest()
+            user =User.objects.get(email=email, password=hashed_password)
             if user is None:
                 self.stdout.write(self.style.ERROR('Email ou mot de passe incorrecte'))
                 return 
@@ -21,6 +23,8 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR('Abandon de la suppression de toutes les catégories et de tous les produits dans la base de données'))
                 return
             with connection.schema_editor() as schema_editor:
+                schema_editor.delete_model(History)
+                schema_editor.create_model(History)
                 schema_editor.delete_model(Category)
                 schema_editor.delete_model(Product)
                 schema_editor.create_model(Category)
